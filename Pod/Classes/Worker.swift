@@ -112,7 +112,7 @@ class Worker {
         var online = true
         client.execute(bulkIndex).success { (result) in
             // `errors` can be either boolean (false) or number (eg. 3), so we need to parse that
-            if let errors = result["errors"] where NSString(string: "\(errors)").boolValue {
+            if let errors = result["errors"], NSString(string: "\(errors)").boolValue {
                 let response = String(jsonObject: result)!
                 NSLog("Unable to index all documents. Got response: \(response)")
             }

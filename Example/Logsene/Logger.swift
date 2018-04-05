@@ -6,7 +6,7 @@ import CocoaLumberjack
     Logsene logger for CocoaLumberjack.
 */
 class LogseneLogger: DDAbstractLogger {
-    override func logMessage(logMessage: DDLogMessage!) {
+    override func logMessage(_ logMessage: DDLogMessage!) {
         var message = logMessage.message
 
         // See https://github.com/CocoaLumberjack/CocoaLumberjack/issues/643
@@ -26,7 +26,7 @@ class LogseneLogger: DDAbstractLogger {
         ])
     }
 
-    private class func formatLogLevel(level: DDLogFlag) -> String {
+    fileprivate class func formatLogLevel(_ level: DDLogFlag) -> String {
         switch level {
         case DDLogFlag.Debug:
             return "debug"
