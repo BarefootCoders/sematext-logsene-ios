@@ -20,7 +20,11 @@ class SqliteObjectBuffer {
     var count: Int {
         get {
             if _count == nil {
-                _count = db.scalar(objects.count)
+                do {
+                    try _count = db.scalar(objects.count)
+                } catch let _ {
+                    //Do something here eventuall
+                }
             }
             return _count!
         }
@@ -48,7 +52,7 @@ class SqliteObjectBuffer {
     /**
         Adds another json object to the buffer.
     */
-    func add(obj: JsonObject) throws {
+    func add(_ obj: JsonObject) throws {
         try db.run(objects.insert(data <- String(jsonObject: obj)!))
         _count? += 1
         if count > size {
@@ -59,12 +63,12 @@ class SqliteObjectBuffer {
     /**
         Reads up to `max` objects from the buffer in FIFO order.
     */
-    func peek(max: Int) throws -> [JsonObject] {
+    func peek(_ max: Int) throws -> [JsonObject] {
         let query = objects.order(id.asc).limit(max)
         var results: [JsonObject] = []
         for record in try db.prepare(query) {
             let jsonString = record[data]!
-            if let obj = try NSJSONSerialization.JSONObjectWithData(jsonString.dataUsingEncoding(NSUTF8StringEncoding)!, options: NSJSONReadingOptions()) as? JsonObject {
+            if let obj = try JSONSerialization.jsonObject(with: jsonString.data(using: String.Encoding.utf8)!, options: JSONSerialization.ReadingOptions()) as? JsonObject {
                 results.append(obj)
             } else {
                 NSLog("Data in database is not a JsonObject!")
@@ -76,7 +80,7 @@ class SqliteObjectBuffer {
     /**
         Removes up to `max` oldest objects.
     */
-    func remove(max: Int) throws {
+    func remove(_ max: Int) throws {
         try db.execute("DELETE FROM \(tableName) WHERE `id` IN (SELECT `id` FROM \(tableName) ORDER BY `id` ASC limit \(max));")
         _count? -= db.changes
     }

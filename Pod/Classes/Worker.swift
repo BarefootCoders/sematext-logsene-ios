@@ -6,56 +6,56 @@ import Foundation
  Events queued while offline will be saved to disk and sent later.
  */
 class Worker {
-    private let maxBatchSize = 50
-    private let minBatchSize = 10
-    private let timeTriggerSec: UInt64 = 60
-    private let preflightBuffer: SqliteObjectBuffer
-    private let serialQueue: dispatch_queue_t
-    private let timer: dispatch_source_t
-    private let client: LogseneClient
-    private let type: String
-    private let reach: LReachability
-    private let isOnline = true
+    fileprivate let maxBatchSize = 50
+    fileprivate let minBatchSize = 10
+    fileprivate let timeTriggerSec: UInt64 = 60
+    fileprivate let preflightBuffer: SqliteObjectBuffer
+    fileprivate let serialQueue: DispatchQueue
+    fileprivate let timer: DispatchSource
+    fileprivate let client: LogseneClient
+    fileprivate let type: String
+    fileprivate let reach: LReachability
+    fileprivate var isOnline = true
 
     init(client: LogseneClient, type: String, maxOfflineMessages: Int) throws {
         self.client = client
         self.type = type
-        serialQueue = dispatch_queue_create("logworker_events", DISPATCH_QUEUE_SERIAL)
+        serialQueue = DispatchQueue(label: "logworker_events", attributes: [])
         reach = try LReachability.reachabilityForInternetConnection()
 
         // Setup sqlite buffer for storing messages before sending them to Logsene
         // This also acts as the offline buffer if device is not online
-        let path = NSSearchPathForDirectoriesInDomains(.DocumentDirectory, .UserDomainMask, true).first!
+        let path = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true).first!
         preflightBuffer = try SqliteObjectBuffer(filePath: "\(path)/logsene.sqlite3", size: maxOfflineMessages)
 
         // creates a timer for sending data every 60s (will tick once right away to send previously buffered data)
-        timer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, serialQueue)
-        dispatch_source_set_timer(timer, DISPATCH_TIME_NOW, timeTriggerSec * NSEC_PER_SEC, 1 * NSEC_PER_SEC);
-        dispatch_source_set_event_handler(timer) {
+        timer = DispatchSource.makeTimerSource(flags: DispatchSource.TimerFlags(rawValue: 0), queue: serialQueue) /*Migrator FIXME: Use DispatchSourceTimer to avoid the cast*/ as! DispatchSource
+        timer.setTimer(start: DispatchTime.now(), interval: timeTriggerSec * NSEC_PER_SEC, leeway: 1 * NSEC_PER_SEC);
+        timer.setEventHandler {
             do {
                 try self.handleTimerTick()
             } catch let err {
                 NSLog("Error while handling timer tick: \(err)")
             }
         }
-        dispatch_resume(timer)
+        timer.resume()
 
         // Setup Reachability to notify when device is online/offline
         reach.whenReachable = { (reach) in
-            dispatch_async(self.serialQueue) {
+            self.serialQueue.async {
                 self.isOnline = true
             }
         }
         reach.whenUnreachable = { (reach) in
-            dispatch_async(self.serialQueue) {
+            self.serialQueue.async {
                 self.isOnline = false
             }
         }
         try reach.startNotifier()
     }
 
-    func addToQueue(event: JsonObject) {
-        dispatch_async(serialQueue) {
+    func addToQueue(_ event: JsonObject) {
+        serialQueue.async {
             do {
                 try self.handleNewEvent(event)
             } catch let err {
@@ -64,7 +64,7 @@ class Worker {
         }
     }
 
-    private func handleNewEvent(event: JsonObject) throws {
+    fileprivate func handleNewEvent(_ event: JsonObject) throws {
         try preflightBuffer.add(event)
         
         if preflightBuffer.count >= minBatchSize && isOnline {
@@ -72,19 +72,19 @@ class Worker {
         }
     }
 
-    private func handleTimerTick() throws {
+    fileprivate func handleTimerTick() throws {
         if isOnline {
             try sendInBatches()
         }
     }
 
     /// Invalidates the timer, pushing the next tick by *timeTriggerSec* seconds.
-    private func invalidateTimer() {
-        let newTime = dispatch_time(DISPATCH_TIME_NOW, Int64(timeTriggerSec * NSEC_PER_SEC))
-        dispatch_source_set_timer(timer, newTime, timeTriggerSec * NSEC_PER_SEC, 1 * NSEC_PER_SEC)
+    fileprivate func invalidateTimer() {
+        let newTime = DispatchTime.now() + Double(Int64(timeTriggerSec * NSEC_PER_SEC)) / Double(NSEC_PER_SEC)
+        timer.setTimer(start: newTime, interval: timeTriggerSec * NSEC_PER_SEC, leeway: 1 * NSEC_PER_SEC)
     }
 
-    private func sendInBatches() throws {
+    fileprivate func sendInBatches() throws {
         while preflightBuffer.count > 0 {
             let batch = try preflightBuffer.peek(maxBatchSize)
             if sendBatch(batch) {
@@ -96,7 +96,7 @@ class Worker {
         }
     }
 
-    private func sendBatch(batch: [JsonObject]) -> Bool {
+    fileprivate func sendBatch(_ batch: [JsonObject]) -> Bool {
         var documents: [(source: String, type: String)] = []
         for source in batch {
             documents.append((source: String(jsonObject: source)!, type: type))
@@ -105,7 +105,7 @@ class Worker {
         return attemptExecute(BulkIndex(documents: documents), attempts: 3)
     }
 
-    private func attemptExecute(bulkIndex: BulkIndex, attempts: Int) -> Bool {
+    fileprivate func attemptExecute(_ bulkIndex: BulkIndex, attempts: Int) -> Bool {
         guard attempts > 0 else { return false }
 
         var success = false
