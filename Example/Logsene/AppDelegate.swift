@@ -13,8 +13,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         LLogNSLogMessages()
 
         // Here we setup CocoaLumberjack to log to both XCode console and Logsene
-        DDLog.addLogger(DDTTYLogger.sharedInstance())
-        DDLog.addLogger(LogseneLogger())
+        DDLog.add(DDTTYLogger.sharedInstance)
+        DDLog.add(LogseneLogger())
         DDLogInfo("hello world from CocoaLumberjack!")
         return true
     }

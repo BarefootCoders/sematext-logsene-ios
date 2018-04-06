@@ -21,16 +21,16 @@ struct Logsene {
         - receiverUrl: The receiver url (optional).
         - maxOfflineMessages: The maximum number of messages (5,000 by default) stored while device is offline (optional).
 */
+private var client: LogseneClient?
+
 public func LogseneInit(_ appToken: String, type: String, receiverUrl: String = "https://logsene-receiver.sematext.com", maxOfflineMessages: Int = 5000) throws {
     var maybeError: Error? = nil
-    dispatch_once(&Logsene.onceToken) {
-        let client = LogseneClient(receiverUrl: receiverUrl, appToken: appToken, configuration: URLSessionConfiguration.default)
-        do {
-            Logsene.worker = try Worker(client: client, type: type, maxOfflineMessages: maxOfflineMessages)
-        } catch (let err) {
-            NSLog("Unable to initialize Logsene worker: \(err)")
-            maybeError = err
-        }
+    client = LogseneClient(receiverUrl: receiverUrl, appToken: appToken, configuration: URLSessionConfiguration.default)
+    do {
+        Logsene.worker = try Worker(client: client!, type: type, maxOfflineMessages: maxOfflineMessages)
+    } catch (let err) {
+        NSLog("Unable to initialize Logsene worker: \(err)")
+        maybeError = err
     }
     if let error = maybeError {
         throw error

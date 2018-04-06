@@ -30,7 +30,7 @@ class Worker {
 
         // creates a timer for sending data every 60s (will tick once right away to send previously buffered data)
         timer = DispatchSource.makeTimerSource(flags: DispatchSource.TimerFlags(rawValue: 0), queue: serialQueue) /*Migrator FIXME: Use DispatchSourceTimer to avoid the cast*/ as! DispatchSource
-        timer.setTimer(start: DispatchTime.now(), interval: timeTriggerSec * NSEC_PER_SEC, leeway: 1 * NSEC_PER_SEC);
+        timer.scheduleRepeating(deadline: DispatchTime.now(), interval: DispatchTimeInterval.seconds(Int(timeTriggerSec)), leeway: DispatchTimeInterval.seconds(1))
         timer.setEventHandler {
             do {
                 try self.handleTimerTick()
@@ -81,7 +81,7 @@ class Worker {
     /// Invalidates the timer, pushing the next tick by *timeTriggerSec* seconds.
     fileprivate func invalidateTimer() {
         let newTime = DispatchTime.now() + Double(Int64(timeTriggerSec * NSEC_PER_SEC)) / Double(NSEC_PER_SEC)
-        timer.setTimer(start: newTime, interval: timeTriggerSec * NSEC_PER_SEC, leeway: 1 * NSEC_PER_SEC)
+        timer.scheduleRepeating(deadline: newTime, interval: DispatchTimeInterval.seconds(Int(timeTriggerSec)), leeway: DispatchTimeInterval.seconds(1))
     }
 
     fileprivate func sendInBatches() throws {
