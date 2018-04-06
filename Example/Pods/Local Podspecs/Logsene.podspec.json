@@ -20,7 +20,7 @@
   "source_files": "Pod/Classes/**/*",
   "dependencies": {
     "SQLite.swift": [
-
+      "~> 0.11.4"
     ]
   }
 }
