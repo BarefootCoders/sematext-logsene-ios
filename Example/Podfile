@@ -9,6 +9,6 @@ end
 target 'Logsene_Tests' do
   pod 'Logsene', :path => '../'
 
-  pod 'Quick', '~> 0.8'
+  pod 'Quick'
   pod 'Nimble'
 end
