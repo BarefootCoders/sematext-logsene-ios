@@ -19,7 +19,7 @@ Getting Started
 1. Logsene log shipping library for iOS is available through [CocoaPods](http://cocoapods.org). To install it, simply add the following line to your Podfile:
 
 ```ruby
-pod "Logsene"
+pod "Logsene", :git => "https://github.com/BarefootCoders/sematext-logsene-ios"
 ```
 
 2. Run `pod install`
