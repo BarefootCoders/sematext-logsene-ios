@@ -154,7 +154,7 @@ class LReachability: NSObject {
         var context = SCNetworkReachabilityContext(version: 0, info: nil, retain: nil, release: nil, copyDescription: nil)
         context.info = UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque()) as? UnsafeMutableRawPointer
 
-        if !SCNetworkReachabilitySetCallback(reachabilityRef!, callback as! SCNetworkReachabilityCallBack, &context) {
+        if !SCNetworkReachabilitySetCallback(reachabilityRef!, callback as SCNetworkReachabilityCallBack, &context) {
             stopNotifier()
             throw ReachabilityError.unableToSetCallback
         }
